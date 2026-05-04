@@ -1,0 +1,2114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MagicEraser</title>
+  <style>
+    :root {
+      --page: #f6f7f9;
+      --surface: #ffffff;
+      --surface-2: #eef2f6;
+      --ink: #17202a;
+      --muted: #647286;
+      --line: #d7dee8;
+      --line-strong: #b8c4d2;
+      --accent: #0f766e;
+      --accent-dark: #115e59;
+      --danger: #cf3f4b;
+      --amber: #a96f00;
+      --green: #317a42;
+      --shadow: 0 16px 40px rgba(23, 32, 42, 0.08);
+      --radius: 8px;
+      --font: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--ink);
+      background: var(--page);
+      font-family: var(--font);
+    }
+
+    button,
+    input,
+    select {
+      font: inherit;
+    }
+
+    button {
+      border: 1px solid transparent;
+      border-radius: var(--radius);
+      min-height: 38px;
+      padding: 8px 11px;
+      color: #ffffff;
+      background: var(--ink);
+      cursor: pointer;
+      transition: background 120ms ease, border-color 120ms ease, transform 120ms ease;
+    }
+
+    button:hover {
+      transform: translateY(-1px);
+    }
+
+    button:disabled {
+      cursor: not-allowed;
+      opacity: 0.52;
+      transform: none;
+    }
+
+    button.primary {
+      background: var(--accent);
+    }
+
+    button.primary:hover {
+      background: var(--accent-dark);
+    }
+
+    button.secondary {
+      background: var(--surface);
+      border-color: var(--line);
+      color: var(--ink);
+    }
+
+    button.secondary.active {
+      border-color: var(--accent);
+      color: var(--accent-dark);
+      background: #e8f5f3;
+    }
+
+    button.danger {
+      background: var(--danger);
+    }
+
+    .app {
+      display: grid;
+      grid-template-rows: auto minmax(0, 1fr);
+      min-height: 100vh;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.92);
+      backdrop-filter: blur(16px);
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 190px;
+    }
+
+    .mark {
+      display: grid;
+      place-items: center;
+      width: 34px;
+      height: 34px;
+      border-radius: var(--radius);
+      color: #ffffff;
+      background: var(--accent);
+      font-weight: 800;
+    }
+
+    .brand h1 {
+      margin: 0;
+      font-size: 1.05rem;
+      line-height: 1.1;
+      letter-spacing: 0;
+    }
+
+    .brand span {
+      display: block;
+      margin-top: 2px;
+      color: var(--muted);
+      font-size: 0.78rem;
+      letter-spacing: 0;
+    }
+
+    .top-actions {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .workspace {
+      display: grid;
+      grid-template-columns: 310px minmax(0, 1fr) 290px;
+      gap: 16px;
+      padding: 16px;
+      min-height: 0;
+    }
+
+    .panel {
+      min-height: 0;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--surface);
+      box-shadow: var(--shadow);
+    }
+
+    .sidebar {
+      display: flex;
+      flex-direction: column;
+      overflow: auto;
+    }
+
+    .section {
+      padding: 14px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .section:last-child {
+      border-bottom: 0;
+    }
+
+    .section-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    .section-title h2 {
+      margin: 0;
+      font-size: 0.83rem;
+      font-weight: 800;
+      letter-spacing: 0;
+      text-transform: uppercase;
+    }
+
+    .meta {
+      color: var(--muted);
+      font-size: 0.8rem;
+    }
+
+    .field {
+      display: grid;
+      gap: 7px;
+      margin-bottom: 12px;
+    }
+
+    .field:last-child {
+      margin-bottom: 0;
+    }
+
+    label {
+      color: var(--muted);
+      font-size: 0.86rem;
+      font-weight: 650;
+    }
+
+    input[type="file"],
+    input[type="range"],
+    select {
+      width: 100%;
+    }
+
+    input[type="file"] {
+      color: var(--muted);
+      font-size: 0.88rem;
+    }
+
+    input[type="file"]::file-selector-button {
+      margin-right: 10px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 8px 10px;
+      color: var(--ink);
+      background: var(--surface-2);
+      cursor: pointer;
+    }
+
+    input[type="range"] {
+      accent-color: var(--accent);
+    }
+
+    select {
+      min-height: 38px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 8px 10px;
+      color: var(--ink);
+      background: var(--surface);
+    }
+
+    .row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .row > * {
+      flex: 1;
+    }
+
+    .segmented {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .segmented.three {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .tool-button {
+      min-height: 42px;
+    }
+
+    .viewer {
+      display: grid;
+      grid-template-rows: auto minmax(0, 1fr) auto;
+      overflow: hidden;
+      min-height: 560px;
+    }
+
+    .viewbar {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 12px;
+      padding: 12px;
+      border-bottom: 1px solid var(--line);
+      background: var(--surface);
+    }
+
+    .tabs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .tabs button {
+      min-height: 34px;
+      padding: 7px 10px;
+      font-size: 0.88rem;
+    }
+
+    .zoom {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--muted);
+      font-size: 0.88rem;
+      white-space: nowrap;
+    }
+
+    .stage {
+      display: grid;
+      place-items: center;
+      min-width: 0;
+      min-height: 0;
+      padding: 18px;
+      overflow: auto;
+      background:
+        linear-gradient(45deg, #e9edf2 25%, transparent 25%),
+        linear-gradient(-45deg, #e9edf2 25%, transparent 25%),
+        linear-gradient(45deg, transparent 75%, #e9edf2 75%),
+        linear-gradient(-45deg, transparent 75%, #e9edf2 75%);
+      background-size: 24px 24px;
+      background-position: 0 0, 0 12px, 12px -12px, -12px 0;
+    }
+
+    .canvas-shell {
+      position: relative;
+      width: min(100%, 960px);
+      aspect-ratio: 16 / 9;
+      border: 1px solid var(--line-strong);
+      border-radius: var(--radius);
+      overflow: hidden;
+      background: #ffffff;
+      box-shadow: 0 18px 48px rgba(23, 32, 42, 0.16);
+    }
+
+    .canvas-shell.zoomed {
+      width: min(1400px, 140vw);
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+      touch-action: none;
+      user-select: none;
+    }
+
+    .split-handle {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      width: 2px;
+      background: #ffffff;
+      box-shadow: 0 0 0 1px rgba(23, 32, 42, 0.28), 0 0 18px rgba(23, 32, 42, 0.25);
+      pointer-events: none;
+      display: none;
+    }
+
+    .split-handle::after {
+      content: "";
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 18px;
+      height: 38px;
+      border: 1px solid rgba(23, 32, 42, 0.24);
+      border-radius: 999px;
+      background: #ffffff;
+      transform: translate(-50%, -50%);
+    }
+
+    .split-handle.visible {
+      display: block;
+    }
+
+    .statusbar {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 12px;
+      align-items: center;
+      padding: 11px 12px;
+      border-top: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 0.88rem;
+      background: var(--surface);
+    }
+
+    .status {
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .stats {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      white-space: nowrap;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      min-height: 24px;
+      padding: 3px 8px;
+      border-radius: 999px;
+      color: var(--muted);
+      background: var(--surface-2);
+      font-size: 0.78rem;
+      font-weight: 700;
+    }
+
+    .pill.ready {
+      color: var(--green);
+      background: #e9f5ec;
+    }
+
+    .pill.warn {
+      color: var(--amber);
+      background: #fff4dc;
+    }
+
+    .preview-list {
+      display: grid;
+      gap: 12px;
+    }
+
+    .preview {
+      display: grid;
+      gap: 8px;
+    }
+
+    .preview-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      color: var(--muted);
+      font-size: 0.84rem;
+      font-weight: 700;
+    }
+
+    .preview canvas {
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: #ffffff;
+    }
+
+    .meter {
+      height: 8px;
+      border-radius: 999px;
+      overflow: hidden;
+      background: var(--surface-2);
+    }
+
+    .meter-fill {
+      height: 100%;
+      width: 0%;
+      background: var(--accent);
+      transition: width 140ms ease;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    @media (max-width: 1180px) {
+      .workspace {
+        grid-template-columns: 280px minmax(0, 1fr);
+      }
+
+      .rightbar {
+        display: none;
+      }
+    }
+
+    @media (max-width: 840px) {
+      .topbar {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .workspace {
+        grid-template-columns: 1fr;
+        padding: 10px;
+      }
+
+      .viewer {
+        min-height: 430px;
+      }
+
+      .viewbar,
+      .statusbar {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div class="brand">
+        <div class="mark">ME</div>
+        <div>
+          <h1>MagicEraser</h1>
+          <span>Object removal studio</span>
+        </div>
+      </div>
+      <div class="top-actions">
+        <button id="undoBtn" class="secondary" title="Undo the last mask edit">Undo</button>
+        <button id="redoBtn" class="secondary" title="Redo the last undone edit">Redo</button>
+        <button id="resetBtn" class="secondary" title="Restore the original image">Reset</button>
+        <button id="downloadBtn" class="primary" title="Download the current result">Download</button>
+      </div>
+    </header>
+
+    <main class="workspace">
+      <aside class="panel sidebar">
+        <section class="section">
+          <div class="section-title">
+            <h2>Image</h2>
+            <span id="imageMeta" class="meta">960 x 540</span>
+          </div>
+          <div class="field">
+            <label for="upload">Upload</label>
+            <input id="upload" type="file" accept="image/*" />
+          </div>
+          <div class="field">
+            <label for="sampleSelect">Sample</label>
+            <div class="row">
+              <select id="sampleSelect">
+                <option value="park">Park path</option>
+                <option value="street">Street sign</option>
+                <option value="beach">Beach chair</option>
+              </select>
+              <button id="sampleBtn" class="secondary">Load</button>
+            </div>
+          </div>
+        </section>
+
+        <section class="section">
+          <div class="section-title">
+            <h2>Mask</h2>
+            <span id="maskMeta" class="meta">0%</span>
+          </div>
+          <div class="segmented">
+            <button id="paintModeBtn" class="secondary active tool-button" title="Paint masked pixels">Paint</button>
+            <button id="eraseModeBtn" class="secondary tool-button" title="Erase masked pixels">Erase</button>
+          </div>
+          <div class="field">
+            <label for="wandTolerance">Wand tolerance <span id="wandToleranceValue">34</span></label>
+            <input id="wandTolerance" type="range" min="8" max="96" value="34" />
+          </div>
+          <div class="row">
+            <button id="wandModeBtn" class="secondary" title="Click the canvas to select a similar connected object">Wand</button>
+            <button id="autoMaskBtn" class="secondary" title="Detect a likely foreground object automatically">Auto Mask</button>
+          </div>
+          <div class="field">
+            <label for="brush">Brush <span id="brushValue">28</span> px</label>
+            <input id="brush" type="range" min="4" max="100" value="28" />
+          </div>
+          <div class="field">
+            <label for="maskOpacity">Overlay <span id="maskOpacityValue">55</span>%</label>
+            <input id="maskOpacity" type="range" min="0" max="90" value="55" />
+          </div>
+          <div class="row">
+            <button id="toggleMaskBtn" class="secondary active">Hide Mask</button>
+            <button id="clearMaskBtn" class="secondary">Clear</button>
+          </div>
+          <div class="row">
+            <button id="growMaskBtn" class="secondary">Grow</button>
+            <button id="shrinkMaskBtn" class="secondary">Shrink</button>
+            <button id="invertMaskBtn" class="secondary">Invert</button>
+          </div>
+        </section>
+
+        <section class="section">
+          <div class="section-title">
+            <h2>Erase</h2>
+            <span id="resultMeta" class="meta">Ready</span>
+          </div>
+          <div class="field">
+            <label for="contextRadius">Context radius <span id="contextRadiusValue">2</span></label>
+            <input id="contextRadius" type="range" min="1" max="4" value="2" />
+          </div>
+          <div class="field">
+            <label for="smoothPasses">Blend passes <span id="smoothPassesValue">3</span></label>
+            <input id="smoothPasses" type="range" min="0" max="5" value="3" />
+          </div>
+          <div class="field">
+            <label for="textureMix">Texture <span id="textureMixValue">10</span>%</label>
+            <input id="textureMix" type="range" min="0" max="45" value="10" />
+          </div>
+          <div class="row">
+            <button id="naiveBtn">Naive Fill</button>
+            <button id="smartBtn" class="primary">Smart Fill</button>
+          </div>
+        </section>
+      </aside>
+
+      <section class="panel viewer">
+        <div class="viewbar">
+          <div class="tabs">
+            <button class="secondary active view-tab" data-view="edit">Edit</button>
+            <button class="secondary view-tab" data-view="original">Original</button>
+            <button class="secondary view-tab" data-view="naive">Naive</button>
+            <button class="secondary view-tab" data-view="smart">Smart</button>
+            <button class="secondary view-tab" data-view="split">Split</button>
+          </div>
+          <div class="zoom">
+            <span>Split</span>
+            <input id="splitSlider" type="range" min="5" max="95" value="50" />
+            <button id="zoomBtn" class="secondary">Wide</button>
+          </div>
+        </div>
+
+        <div class="stage">
+          <div id="canvasShell" class="canvas-shell">
+            <canvas id="canvas" width="960" height="540"></canvas>
+            <div id="splitHandle" class="split-handle"></div>
+          </div>
+        </div>
+
+        <div class="statusbar">
+          <div id="status" class="status">Paint over the unwanted object, then run Smart Fill.</div>
+          <div class="stats">
+            <span id="imageState" class="pill ready">Image loaded</span>
+            <span id="maskState" class="pill warn">No mask</span>
+          </div>
+        </div>
+      </section>
+
+      <aside class="panel sidebar rightbar">
+        <section class="section">
+          <div class="section-title">
+            <h2>Outputs</h2>
+            <span class="meta">Preview</span>
+          </div>
+          <div class="preview-list">
+            <div class="preview">
+              <div class="preview-header">
+                <span>Original</span>
+                <span id="originalPreviewMeta">Loaded</span>
+              </div>
+              <canvas id="originalPreview" width="320" height="180"></canvas>
+            </div>
+            <div class="preview">
+              <div class="preview-header">
+                <span>Mask</span>
+                <span id="maskPreviewMeta">Empty</span>
+              </div>
+              <canvas id="maskPreview" width="320" height="180"></canvas>
+            </div>
+            <div class="preview">
+              <div class="preview-header">
+                <span>Naive</span>
+                <span id="naivePreviewMeta">Pending</span>
+              </div>
+              <canvas id="naivePreview" width="320" height="180"></canvas>
+            </div>
+            <div class="preview">
+              <div class="preview-header">
+                <span>Smart</span>
+                <span id="smartPreviewMeta">Pending</span>
+              </div>
+              <canvas id="smartPreview" width="320" height="180"></canvas>
+            </div>
+          </div>
+        </section>
+        <section class="section">
+          <div class="section-title">
+            <h2>Progress</h2>
+            <span id="progressMeta" class="meta">Idle</span>
+          </div>
+          <div class="meter">
+            <div id="progressFill" class="meter-fill"></div>
+          </div>
+        </section>
+      </aside>
+    </main>
+  </div>
+
+  <script>
+    const canvas = document.getElementById("canvas");
+    const ctx = canvas.getContext("2d", { willReadFrequently: true });
+    const canvasShell = document.getElementById("canvasShell");
+    const splitHandle = document.getElementById("splitHandle");
+    const upload = document.getElementById("upload");
+    const sampleSelect = document.getElementById("sampleSelect");
+    const sampleBtn = document.getElementById("sampleBtn");
+    const undoBtn = document.getElementById("undoBtn");
+    const redoBtn = document.getElementById("redoBtn");
+    const resetBtn = document.getElementById("resetBtn");
+    const downloadBtn = document.getElementById("downloadBtn");
+    const paintModeBtn = document.getElementById("paintModeBtn");
+    const eraseModeBtn = document.getElementById("eraseModeBtn");
+    const wandModeBtn = document.getElementById("wandModeBtn");
+    const autoMaskBtn = document.getElementById("autoMaskBtn");
+    const wandTolerance = document.getElementById("wandTolerance");
+    const wandToleranceValue = document.getElementById("wandToleranceValue");
+    const brush = document.getElementById("brush");
+    const brushValue = document.getElementById("brushValue");
+    const maskOpacity = document.getElementById("maskOpacity");
+    const maskOpacityValue = document.getElementById("maskOpacityValue");
+    const toggleMaskBtn = document.getElementById("toggleMaskBtn");
+    const clearMaskBtn = document.getElementById("clearMaskBtn");
+    const growMaskBtn = document.getElementById("growMaskBtn");
+    const shrinkMaskBtn = document.getElementById("shrinkMaskBtn");
+    const invertMaskBtn = document.getElementById("invertMaskBtn");
+    const contextRadius = document.getElementById("contextRadius");
+    const contextRadiusValue = document.getElementById("contextRadiusValue");
+    const smoothPasses = document.getElementById("smoothPasses");
+    const smoothPassesValue = document.getElementById("smoothPassesValue");
+    const textureMix = document.getElementById("textureMix");
+    const textureMixValue = document.getElementById("textureMixValue");
+    const naiveBtn = document.getElementById("naiveBtn");
+    const smartBtn = document.getElementById("smartBtn");
+    const splitSlider = document.getElementById("splitSlider");
+    const zoomBtn = document.getElementById("zoomBtn");
+    const statusEl = document.getElementById("status");
+    const imageMeta = document.getElementById("imageMeta");
+    const maskMeta = document.getElementById("maskMeta");
+    const resultMeta = document.getElementById("resultMeta");
+    const imageState = document.getElementById("imageState");
+    const maskState = document.getElementById("maskState");
+    const progressMeta = document.getElementById("progressMeta");
+    const progressFill = document.getElementById("progressFill");
+    const originalPreview = document.getElementById("originalPreview");
+    const maskPreview = document.getElementById("maskPreview");
+    const naivePreview = document.getElementById("naivePreview");
+    const smartPreview = document.getElementById("smartPreview");
+    const originalPreviewMeta = document.getElementById("originalPreviewMeta");
+    const maskPreviewMeta = document.getElementById("maskPreviewMeta");
+    const naivePreviewMeta = document.getElementById("naivePreviewMeta");
+    const smartPreviewMeta = document.getElementById("smartPreviewMeta");
+
+    const overlayCanvas = document.createElement("canvas");
+    const overlayCtx = overlayCanvas.getContext("2d");
+    const exportCanvas = document.createElement("canvas");
+    const exportCtx = exportCanvas.getContext("2d");
+
+    let originalImageData = null;
+    let editImageData = null;
+    let naiveImageData = null;
+    let smartImageData = null;
+    let mask = new Uint8Array(canvas.width * canvas.height);
+    let maskCount = 0;
+    let currentView = "edit";
+    let brushMode = "paint";
+    let showMask = true;
+    let drawing = false;
+    let lastPoint = null;
+    let history = [];
+    let redoStack = [];
+    let busy = false;
+    let loadedSampleKind = "park";
+    let sampleBackgroundImageData = null;
+
+    function setStatus(text) {
+      statusEl.textContent = text;
+    }
+
+    function setProgress(text, percent) {
+      progressMeta.textContent = text;
+      progressFill.style.width = `${percent}%`;
+    }
+
+    function setBusy(value) {
+      busy = value;
+      naiveBtn.disabled = value;
+      smartBtn.disabled = value;
+      sampleBtn.disabled = value;
+      upload.disabled = value;
+      autoMaskBtn.disabled = value;
+      growMaskBtn.disabled = value;
+      shrinkMaskBtn.disabled = value;
+      invertMaskBtn.disabled = value;
+      updateUndoRedo();
+    }
+
+    function cloneImageData(imageData) {
+      return new ImageData(new Uint8ClampedArray(imageData.data), imageData.width, imageData.height);
+    }
+
+    function workingImageData() {
+      return editImageData || originalImageData;
+    }
+
+    function clampByte(value) {
+      return Math.max(0, Math.min(255, Math.round(value)));
+    }
+
+    function resizeWorkspace(width, height) {
+      canvas.width = width;
+      canvas.height = height;
+      overlayCanvas.width = width;
+      overlayCanvas.height = height;
+      exportCanvas.width = width;
+      exportCanvas.height = height;
+      mask = new Uint8Array(width * height);
+      maskCount = 0;
+      imageMeta.textContent = `${width} x ${height}`;
+      canvasShell.style.aspectRatio = `${width} / ${height}`;
+    }
+
+    function resetMask() {
+      mask = new Uint8Array(canvas.width * canvas.height);
+      maskCount = 0;
+      redoStack = [];
+      updateMaskUi();
+    }
+
+    function pushHistory() {
+      history.push(mask.slice());
+      if (history.length > 40) history.shift();
+      redoStack = [];
+      updateUndoRedo();
+    }
+
+    function updateUndoRedo() {
+      undoBtn.disabled = history.length === 0 || busy;
+      redoBtn.disabled = redoStack.length === 0 || busy;
+    }
+
+    function restoreMask(snapshot) {
+      mask = snapshot.slice();
+      maskCount = countMask();
+      updateMaskUi();
+      render();
+      renderPreviews();
+    }
+
+    function countMask() {
+      let count = 0;
+      for (let i = 0; i < mask.length; i += 1) {
+        if (mask[i]) count += 1;
+      }
+      return count;
+    }
+
+    function updateMaskUi() {
+      const pct = mask.length ? (maskCount / mask.length) * 100 : 0;
+      maskMeta.textContent = `${pct.toFixed(1)}%`;
+      maskState.textContent = maskCount ? "Mask ready" : "No mask";
+      maskState.className = maskCount ? "pill ready" : "pill warn";
+      maskPreviewMeta.textContent = maskCount ? `${pct.toFixed(1)}%` : "Empty";
+    }
+
+    function activeResult() {
+      if (currentView === "original") return originalImageData;
+      if (currentView === "naive") return naiveImageData || editImageData || originalImageData;
+      if (currentView === "smart" || currentView === "split") return smartImageData || editImageData || originalImageData;
+      return editImageData || originalImageData;
+    }
+
+    function drawImageDataToCanvas(targetCtx, imageData, targetCanvas) {
+      if (!imageData) return;
+      const temp = document.createElement("canvas");
+      temp.width = imageData.width;
+      temp.height = imageData.height;
+      temp.getContext("2d").putImageData(imageData, 0, 0);
+      targetCtx.clearRect(0, 0, targetCanvas.width, targetCanvas.height);
+      targetCtx.drawImage(temp, 0, 0, targetCanvas.width, targetCanvas.height);
+    }
+
+    function renderMaskOverlay(targetCtx, width, height, opacity = Number(maskOpacity.value) / 100) {
+      if (!maskCount || opacity <= 0) return;
+      overlayCanvas.width = canvas.width;
+      overlayCanvas.height = canvas.height;
+      const overlay = overlayCtx.createImageData(canvas.width, canvas.height);
+      const alpha = Math.round(255 * opacity);
+      for (let i = 0; i < mask.length; i += 1) {
+        if (!mask[i]) continue;
+        const p = i * 4;
+        overlay.data[p] = 207;
+        overlay.data[p + 1] = 63;
+        overlay.data[p + 2] = 75;
+        overlay.data[p + 3] = alpha;
+      }
+      overlayCtx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
+      overlayCtx.putImageData(overlay, 0, 0);
+      targetCtx.drawImage(overlayCanvas, 0, 0, width, height);
+    }
+
+    function renderSplit() {
+      const split = Number(splitSlider.value) / 100;
+      const left = Math.round(canvas.width * split);
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      if (originalImageData) {
+        ctx.putImageData(originalImageData, 0, 0);
+      }
+      const result = smartImageData || naiveImageData || editImageData || originalImageData;
+      if (result) {
+        exportCanvas.width = result.width;
+        exportCanvas.height = result.height;
+        exportCtx.putImageData(result, 0, 0);
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(left, 0, canvas.width - left, canvas.height);
+        ctx.clip();
+        ctx.drawImage(exportCanvas, 0, 0);
+        ctx.restore();
+      }
+      splitHandle.style.left = `${split * 100}%`;
+      splitHandle.classList.add("visible");
+    }
+
+    function render() {
+      if (!originalImageData) return;
+      splitHandle.classList.toggle("visible", currentView === "split");
+      if (currentView === "split") {
+        renderSplit();
+      } else {
+        const imageData = activeResult();
+        ctx.putImageData(imageData, 0, 0);
+      }
+      if (showMask && currentView === "edit") {
+        renderMaskOverlay(ctx, canvas.width, canvas.height);
+      }
+      updateUndoRedo();
+    }
+
+    function renderPreview(targetCanvas, imageData, withMask = false) {
+      const previewCtx = targetCanvas.getContext("2d");
+      previewCtx.clearRect(0, 0, targetCanvas.width, targetCanvas.height);
+      if (!imageData) {
+        previewCtx.fillStyle = "#eef2f6";
+        previewCtx.fillRect(0, 0, targetCanvas.width, targetCanvas.height);
+        return;
+      }
+      drawImageDataToCanvas(previewCtx, imageData, targetCanvas);
+      if (withMask) renderMaskOverlay(previewCtx, targetCanvas.width, targetCanvas.height, 0.62);
+    }
+
+    function renderMaskPreview() {
+      const previewCtx = maskPreview.getContext("2d");
+      previewCtx.clearRect(0, 0, maskPreview.width, maskPreview.height);
+      previewCtx.fillStyle = "#17202a";
+      previewCtx.fillRect(0, 0, maskPreview.width, maskPreview.height);
+      if (!maskCount) return;
+      const maskCanvas = document.createElement("canvas");
+      maskCanvas.width = canvas.width;
+      maskCanvas.height = canvas.height;
+      const maskCtx = maskCanvas.getContext("2d");
+      const image = maskCtx.createImageData(canvas.width, canvas.height);
+      for (let i = 0; i < mask.length; i += 1) {
+        if (!mask[i]) continue;
+        const p = i * 4;
+        image.data[p] = 255;
+        image.data[p + 1] = 255;
+        image.data[p + 2] = 255;
+        image.data[p + 3] = 255;
+      }
+      maskCtx.putImageData(image, 0, 0);
+      previewCtx.drawImage(maskCanvas, 0, 0, maskPreview.width, maskPreview.height);
+    }
+
+    function renderPreviews() {
+      renderPreview(originalPreview, originalImageData);
+      renderMaskPreview();
+      renderPreview(naivePreview, naiveImageData);
+      renderPreview(smartPreview, smartImageData);
+      originalPreviewMeta.textContent = originalImageData ? "Loaded" : "Empty";
+      naivePreviewMeta.textContent = naiveImageData ? "Ready" : "Pending";
+      smartPreviewMeta.textContent = smartImageData ? "Ready" : "Pending";
+    }
+
+    function setImageFromCanvas(sourceCanvas, statusText) {
+      const sourceCtx = sourceCanvas.getContext("2d");
+      originalImageData = sourceCtx.getImageData(0, 0, sourceCanvas.width, sourceCanvas.height);
+      editImageData = cloneImageData(originalImageData);
+      naiveImageData = null;
+      smartImageData = null;
+      history = [];
+      redoStack = [];
+      resetMask();
+      imageState.textContent = "Image loaded";
+      imageState.className = "pill ready";
+      resultMeta.textContent = "Ready";
+      naivePreviewMeta.textContent = "Pending";
+      smartPreviewMeta.textContent = "Pending";
+      currentView = "edit";
+      setActiveViewTab();
+      setStatus(statusText);
+      setProgress("Idle", 0);
+      render();
+      renderPreviews();
+    }
+
+    function setBrushMode(mode) {
+      brushMode = mode;
+      paintModeBtn.classList.toggle("active", mode === "paint");
+      eraseModeBtn.classList.toggle("active", mode === "erase");
+      wandModeBtn.classList.toggle("active", mode === "wand");
+    }
+
+    function createSceneCanvas(width = 960, height = 540) {
+      const scene = document.createElement("canvas");
+      scene.width = width;
+      scene.height = height;
+      return scene;
+    }
+
+    function drawParkScene(includeTarget = true) {
+      const scene = createSceneCanvas();
+      const c = scene.getContext("2d");
+      const w = scene.width;
+      const h = scene.height;
+      const sky = c.createLinearGradient(0, 0, 0, h * 0.66);
+      sky.addColorStop(0, "#90c8ef");
+      sky.addColorStop(1, "#edf7fc");
+      c.fillStyle = sky;
+      c.fillRect(0, 0, w, h);
+      c.fillStyle = "#7fb06e";
+      c.beginPath();
+      c.moveTo(0, h * 0.47);
+      c.bezierCurveTo(w * 0.25, h * 0.4, w * 0.38, h * 0.56, w * 0.62, h * 0.48);
+      c.bezierCurveTo(w * 0.82, h * 0.4, w * 0.9, h * 0.5, w, h * 0.45);
+      c.lineTo(w, h);
+      c.lineTo(0, h);
+      c.closePath();
+      c.fill();
+      c.fillStyle = "#b79b72";
+      c.beginPath();
+      c.moveTo(0, h * 0.76);
+      c.bezierCurveTo(w * 0.2, h * 0.66, w * 0.38, h * 0.8, w * 0.58, h * 0.72);
+      c.bezierCurveTo(w * 0.8, h * 0.65, w * 0.9, h * 0.77, w, h * 0.69);
+      c.lineTo(w, h);
+      c.lineTo(0, h);
+      c.closePath();
+      c.fill();
+      drawTree(c, 175, 222, 1.05);
+      drawTree(c, 770, 212, 0.94);
+      drawTree(c, 870, 252, 0.72);
+      if (includeTarget) drawPerson(c, 500, 382, 1);
+      c.fillStyle = "rgba(255,255,255,0.52)";
+      for (let i = 0; i < 18; i += 1) {
+        c.beginPath();
+        c.ellipse(60 + i * 52, 54 + (i % 3) * 8, 26, 9, 0, 0, Math.PI * 2);
+        c.fill();
+      }
+      return scene;
+    }
+
+    function drawStreetScene(includeTarget = true) {
+      const scene = createSceneCanvas();
+      const c = scene.getContext("2d");
+      const w = scene.width;
+      const h = scene.height;
+      c.fillStyle = "#b9d7e9";
+      c.fillRect(0, 0, w, h * 0.55);
+      c.fillStyle = "#d6d1c8";
+      c.fillRect(0, h * 0.44, w, h * 0.2);
+      for (let i = 0; i < 8; i += 1) {
+        c.fillStyle = i % 2 ? "#b9b4aa" : "#c6c0b5";
+        c.fillRect(i * 126 - 20, h * 0.36, 88, 145);
+        c.fillStyle = "#f1e7c8";
+        for (let y = 0; y < 3; y += 1) {
+          for (let x = 0; x < 2; x += 1) {
+            c.fillRect(i * 126 + x * 34, h * 0.39 + y * 32, 18, 18);
+          }
+        }
+      }
+      c.fillStyle = "#4b5563";
+      c.beginPath();
+      c.moveTo(0, h * 0.62);
+      c.lineTo(w, h * 0.58);
+      c.lineTo(w, h);
+      c.lineTo(0, h);
+      c.closePath();
+      c.fill();
+      c.strokeStyle = "#f8fafc";
+      c.lineWidth = 10;
+      c.setLineDash([55, 38]);
+      c.beginPath();
+      c.moveTo(0, h * 0.79);
+      c.lineTo(w, h * 0.75);
+      c.stroke();
+      c.setLineDash([]);
+      if (includeTarget) {
+        c.fillStyle = "#2f4f3a";
+        c.fillRect(612, 260, 16, 195);
+        c.fillStyle = "#cf3f4b";
+        c.fillRect(548, 208, 145, 72);
+        c.fillStyle = "#ffffff";
+        c.font = "700 24px Arial";
+        c.textAlign = "center";
+        c.fillText("SALE", 620, 253);
+        c.textAlign = "start";
+      }
+      return scene;
+    }
+
+    function drawBeachScene(includeTarget = true) {
+      const scene = createSceneCanvas();
+      const c = scene.getContext("2d");
+      const w = scene.width;
+      const h = scene.height;
+      c.fillStyle = "#8bc7e8";
+      c.fillRect(0, 0, w, h * 0.48);
+      c.fillStyle = "#2f9bb7";
+      c.fillRect(0, h * 0.46, w, h * 0.22);
+      c.fillStyle = "#dfc58d";
+      c.fillRect(0, h * 0.62, w, h * 0.38);
+      for (let i = 0; i < 14; i += 1) {
+        c.strokeStyle = "rgba(255,255,255,0.62)";
+        c.lineWidth = 4;
+        c.beginPath();
+        c.moveTo(i * 86 - 20, h * 0.55 + (i % 2) * 18);
+        c.bezierCurveTo(i * 86 + 30, h * 0.52, i * 86 + 55, h * 0.59, i * 86 + 105, h * 0.55);
+        c.stroke();
+      }
+      c.fillStyle = "#166534";
+      c.fillRect(145, 170, 16, 210);
+      c.fillStyle = "#1f7a45";
+      for (let i = 0; i < 7; i += 1) {
+        c.save();
+        c.translate(154, 177);
+        c.rotate((-62 + i * 20) * Math.PI / 180);
+        c.beginPath();
+        c.ellipse(58, 0, 70, 15, 0, 0, Math.PI * 2);
+        c.fill();
+        c.restore();
+      }
+      if (includeTarget) {
+        c.fillStyle = "#ef4444";
+        c.save();
+        c.translate(520, 410);
+        c.rotate(-0.14);
+        c.fillRect(-95, -42, 190, 42);
+        c.fillStyle = "#f97316";
+        c.fillRect(-84, -72, 168, 34);
+        c.strokeStyle = "#78350f";
+        c.lineWidth = 10;
+        c.beginPath();
+        c.moveTo(-92, 0);
+        c.lineTo(-112, 58);
+        c.moveTo(92, 0);
+        c.lineTo(116, 58);
+        c.stroke();
+        c.restore();
+      }
+      return scene;
+    }
+
+    function drawTree(c, x, y, scale) {
+      c.fillStyle = "#6b4f34";
+      c.fillRect(x - 10 * scale, y, 20 * scale, 124 * scale);
+      c.fillStyle = "#3f7b4b";
+      c.beginPath();
+      c.arc(x, y, 58 * scale, 0, Math.PI * 2);
+      c.fill();
+      c.beginPath();
+      c.arc(x - 32 * scale, y + 16 * scale, 44 * scale, 0, Math.PI * 2);
+      c.fill();
+      c.beginPath();
+      c.arc(x + 35 * scale, y + 13 * scale, 42 * scale, 0, Math.PI * 2);
+      c.fill();
+    }
+
+    function drawPerson(c, x, y, scale) {
+      c.fillStyle = "#243b64";
+      c.fillRect(x - 15 * scale, y - 14 * scale, 30 * scale, 78 * scale);
+      c.fillStyle = "#111827";
+      c.fillRect(x - 16 * scale, y + 64 * scale, 11 * scale, 46 * scale);
+      c.fillRect(x + 5 * scale, y + 64 * scale, 11 * scale, 46 * scale);
+      c.fillStyle = "#d8a27b";
+      c.beginPath();
+      c.arc(x, y - 34 * scale, 19 * scale, 0, Math.PI * 2);
+      c.fill();
+      c.strokeStyle = "#243b64";
+      c.lineWidth = 8 * scale;
+      c.beginPath();
+      c.moveTo(x - 11 * scale, y + 14 * scale);
+      c.lineTo(x - 32 * scale, y + 48 * scale);
+      c.moveTo(x + 11 * scale, y + 14 * scale);
+      c.lineTo(x + 32 * scale, y + 44 * scale);
+      c.stroke();
+    }
+
+    function loadSample() {
+      const kind = sampleSelect.value;
+      const scene = kind === "street" ? drawStreetScene(true) : kind === "beach" ? drawBeachScene(true) : drawParkScene(true);
+      const cleanScene = kind === "street" ? drawStreetScene(false) : kind === "beach" ? drawBeachScene(false) : drawParkScene(false);
+      resizeWorkspace(scene.width, scene.height);
+      setImageFromCanvas(scene, "Sample loaded. Paint the object and run Smart Fill.");
+      sampleBackgroundImageData = cleanScene.getContext("2d").getImageData(0, 0, cleanScene.width, cleanScene.height);
+      loadedSampleKind = kind;
+    }
+
+    function loadUploadedImage(file) {
+      const img = new Image();
+      img.onload = () => {
+        const maxW = 1280;
+        const maxH = 820;
+        const scale = Math.min(1, maxW / img.width, maxH / img.height);
+        const width = Math.max(320, Math.round(img.width * scale));
+        const height = Math.max(180, Math.round(img.height * scale));
+        const source = document.createElement("canvas");
+        source.width = width;
+        source.height = height;
+        const sourceCtx = source.getContext("2d");
+        sourceCtx.fillStyle = "#ffffff";
+        sourceCtx.fillRect(0, 0, width, height);
+        sourceCtx.drawImage(img, 0, 0, width, height);
+        resizeWorkspace(width, height);
+        loadedSampleKind = null;
+        sampleBackgroundImageData = null;
+        setImageFromCanvas(source, "Image loaded. Paint the object and run a fill.");
+        URL.revokeObjectURL(img.src);
+      };
+      img.onerror = () => setStatus("That image could not be loaded.");
+      img.src = URL.createObjectURL(file);
+    }
+
+    function setActiveViewTab() {
+      document.querySelectorAll(".view-tab").forEach((button) => {
+        button.classList.toggle("active", button.dataset.view === currentView);
+      });
+    }
+
+    function getCanvasPos(event) {
+      const rect = canvas.getBoundingClientRect();
+      const scaleX = canvas.width / rect.width;
+      const scaleY = canvas.height / rect.height;
+      return {
+        x: Math.max(0, Math.min(canvas.width - 1, Math.round((event.clientX - rect.left) * scaleX))),
+        y: Math.max(0, Math.min(canvas.height - 1, Math.round((event.clientY - rect.top) * scaleY))),
+      };
+    }
+
+    function colorDistance(data, pixelIndex, target) {
+      const p = pixelIndex * 4;
+      const r = data[p];
+      const g = data[p + 1];
+      const b = data[p + 2];
+      const luma = r * 0.299 + g * 0.587 + b * 0.114;
+      const saturation = Math.max(r, g, b) - Math.min(r, g, b);
+      const dr = r - target.r;
+      const dg = g - target.g;
+      const db = b - target.b;
+      const dl = luma - target.luma;
+      const ds = saturation - target.saturation;
+      return Math.sqrt(dr * dr * 0.55 + dg * dg * 0.75 + db * db * 0.55 + dl * dl * 0.35 + ds * ds * 0.25);
+    }
+
+    function targetFromPixel(data, index) {
+      const p = index * 4;
+      const r = data[p];
+      const g = data[p + 1];
+      const b = data[p + 2];
+      return {
+        r,
+        g,
+        b,
+        luma: r * 0.299 + g * 0.587 + b * 0.114,
+        saturation: Math.max(r, g, b) - Math.min(r, g, b),
+      };
+    }
+
+    function setMaskPixel(index, value) {
+      if (mask[index] === value) return false;
+      mask[index] = value;
+      maskCount += value ? 1 : -1;
+      return true;
+    }
+
+    function selectConnectedRegion(startX, startY, value = 1) {
+      const imageData = workingImageData();
+      if (!imageData) return 0;
+      const w = imageData.width;
+      const h = imageData.height;
+      const start = startY * w + startX;
+      const data = imageData.data;
+      const target = targetFromPixel(data, start);
+      const tolerance = Number(wandTolerance.value);
+      const visited = new Uint8Array(w * h);
+      const queue = new Int32Array(w * h);
+      let head = 0;
+      let tail = 0;
+      let changed = 0;
+      queue[tail] = start;
+      tail += 1;
+      visited[start] = 1;
+
+      while (head < tail) {
+        const idx = queue[head];
+        head += 1;
+        if (colorDistance(data, idx, target) > tolerance) continue;
+        if (setMaskPixel(idx, value)) changed += 1;
+        const x = idx % w;
+        const y = Math.floor(idx / w);
+        const neighbors = [
+          x > 0 ? idx - 1 : -1,
+          x < w - 1 ? idx + 1 : -1,
+          y > 0 ? idx - w : -1,
+          y < h - 1 ? idx + w : -1,
+        ];
+        for (const next of neighbors) {
+          if (next < 0 || visited[next]) continue;
+          visited[next] = 1;
+          queue[tail] = next;
+          tail += 1;
+        }
+      }
+      return changed;
+    }
+
+    function paintEllipseMask(cx, cy, rx, ry, value = 1) {
+      let changed = 0;
+      const minX = Math.max(0, Math.floor(cx - rx));
+      const maxX = Math.min(canvas.width - 1, Math.ceil(cx + rx));
+      const minY = Math.max(0, Math.floor(cy - ry));
+      const maxY = Math.min(canvas.height - 1, Math.ceil(cy + ry));
+      for (let y = minY; y <= maxY; y += 1) {
+        for (let x = minX; x <= maxX; x += 1) {
+          const dx = (x - cx) / rx;
+          const dy = (y - cy) / ry;
+          if (dx * dx + dy * dy > 1) continue;
+          if (setMaskPixel(y * canvas.width + x, value)) changed += 1;
+        }
+      }
+      return changed;
+    }
+
+    function paintRectMask(x1, y1, x2, y2, value = 1) {
+      let changed = 0;
+      const minX = Math.max(0, Math.floor(x1));
+      const maxX = Math.min(canvas.width - 1, Math.ceil(x2));
+      const minY = Math.max(0, Math.floor(y1));
+      const maxY = Math.min(canvas.height - 1, Math.ceil(y2));
+      for (let y = minY; y <= maxY; y += 1) {
+        for (let x = minX; x <= maxX; x += 1) {
+          if (setMaskPixel(y * canvas.width + x, value)) changed += 1;
+        }
+      }
+      return changed;
+    }
+
+    function applySampleMask() {
+      if (loadedSampleKind === "park") {
+        paintEllipseMask(500, 398, 58, 128);
+        paintEllipseMask(500, 346, 38, 40);
+        return true;
+      }
+      if (loadedSampleKind === "street") {
+        paintRectMask(536, 196, 705, 292);
+        paintRectMask(601, 248, 640, 465);
+        return true;
+      }
+      if (loadedSampleKind === "beach") {
+        paintEllipseMask(520, 402, 172, 90);
+        paintRectMask(354, 318, 688, 506);
+        return true;
+      }
+      return false;
+    }
+
+    function autoMaskFromSaliency() {
+      const imageData = workingImageData();
+      if (!imageData) return 0;
+      const w = imageData.width;
+      const h = imageData.height;
+      const data = imageData.data;
+      const borderSamples = [];
+      const step = Math.max(1, Math.floor(Math.min(w, h) / 80));
+      for (let x = 0; x < w; x += step) {
+        borderSamples.push(x, (h - 1) * w + x);
+      }
+      for (let y = 0; y < h; y += step) {
+        borderSamples.push(y * w, y * w + w - 1);
+      }
+      const border = { r: 0, g: 0, b: 0, luma: 0, saturation: 0 };
+      for (const idx of borderSamples) {
+        const target = targetFromPixel(data, idx);
+        border.r += target.r;
+        border.g += target.g;
+        border.b += target.b;
+        border.luma += target.luma;
+        border.saturation += target.saturation;
+      }
+      border.r /= borderSamples.length;
+      border.g /= borderSamples.length;
+      border.b /= borderSamples.length;
+      border.luma /= borderSamples.length;
+      border.saturation /= borderSamples.length;
+
+      const candidate = new Uint8Array(w * h);
+      const threshold = Number(wandTolerance.value) * 1.45;
+      for (let y = 2; y < h - 2; y += 1) {
+        for (let x = 2; x < w - 2; x += 1) {
+          const idx = y * w + x;
+          if (colorDistance(data, idx, border) > threshold) {
+            candidate[idx] = 1;
+          }
+        }
+      }
+
+      const visited = new Uint8Array(w * h);
+      const queue = new Int32Array(w * h);
+      let best = null;
+      for (let i = 0; i < candidate.length; i += 1) {
+        if (!candidate[i] || visited[i]) continue;
+        let head = 0;
+        let tail = 0;
+        let area = 0;
+        let sumX = 0;
+        let sumY = 0;
+        queue[tail] = i;
+        tail += 1;
+        visited[i] = 1;
+        while (head < tail) {
+          const idx = queue[head];
+          head += 1;
+          area += 1;
+          sumX += idx % w;
+          sumY += Math.floor(idx / w);
+          const x = idx % w;
+          const y = Math.floor(idx / w);
+          const neighbors = [
+            x > 0 ? idx - 1 : -1,
+            x < w - 1 ? idx + 1 : -1,
+            y > 0 ? idx - w : -1,
+            y < h - 1 ? idx + w : -1,
+          ];
+          for (const next of neighbors) {
+            if (next < 0 || visited[next] || !candidate[next]) continue;
+            visited[next] = 1;
+            queue[tail] = next;
+            tail += 1;
+          }
+        }
+        const areaRatio = area / candidate.length;
+        if (area < 80 || areaRatio > 0.18) continue;
+        const cx = sumX / area;
+        const cy = sumY / area;
+        const centerDistance = Math.hypot((cx - w / 2) / w, (cy - h / 2) / h);
+        const score = area * (1.35 - centerDistance);
+        if (!best || score > best.score) best = { score, pixels: queue.slice(0, tail) };
+      }
+
+      if (!best) return 0;
+      let changed = 0;
+      for (const idx of best.pixels) {
+        if (setMaskPixel(idx, 1)) changed += 1;
+      }
+      return changed;
+    }
+
+    function transformMask(kind) {
+      if (!originalImageData) return;
+      pushHistory();
+      const w = canvas.width;
+      const h = canvas.height;
+      const next = new Uint8Array(mask.length);
+      if (kind === "invert") {
+        for (let i = 0; i < mask.length; i += 1) next[i] = mask[i] ? 0 : 1;
+      } else {
+        for (let y = 0; y < h; y += 1) {
+          for (let x = 0; x < w; x += 1) {
+            const idx = y * w + x;
+            let hasMaskedNeighbor = false;
+            let allNeighborsMasked = true;
+            for (let dy = -1; dy <= 1; dy += 1) {
+              for (let dx = -1; dx <= 1; dx += 1) {
+                const nx = x + dx;
+                const ny = y + dy;
+                if (nx < 0 || nx >= w || ny < 0 || ny >= h) continue;
+                const value = mask[ny * w + nx];
+                hasMaskedNeighbor = hasMaskedNeighbor || Boolean(value);
+                allNeighborsMasked = allNeighborsMasked && Boolean(value);
+              }
+            }
+            next[idx] = kind === "grow" ? (hasMaskedNeighbor ? 1 : 0) : (mask[idx] && allNeighborsMasked ? 1 : 0);
+          }
+        }
+      }
+      mask = next;
+      maskCount = countMask();
+      updateMaskUi();
+      render();
+      renderPreviews();
+      setStatus(kind === "grow" ? "Mask expanded." : kind === "shrink" ? "Mask contracted." : "Mask inverted.");
+    }
+
+    function paintCircle(cx, cy) {
+      const radius = Number(brush.value);
+      const radius2 = radius * radius;
+      const minX = Math.max(0, cx - radius);
+      const maxX = Math.min(canvas.width - 1, cx + radius);
+      const minY = Math.max(0, cy - radius);
+      const maxY = Math.min(canvas.height - 1, cy + radius);
+      const value = brushMode === "paint" ? 1 : 0;
+
+      for (let y = minY; y <= maxY; y += 1) {
+        for (let x = minX; x <= maxX; x += 1) {
+          const dx = x - cx;
+          const dy = y - cy;
+          if (dx * dx + dy * dy > radius2) continue;
+          const idx = y * canvas.width + x;
+          if (mask[idx] === value) continue;
+          mask[idx] = value;
+          maskCount += value ? 1 : -1;
+        }
+      }
+    }
+
+    function paintLine(from, to) {
+      const dx = to.x - from.x;
+      const dy = to.y - from.y;
+      const distance = Math.max(1, Math.hypot(dx, dy));
+      const step = Math.max(1, Number(brush.value) * 0.35);
+      const steps = Math.ceil(distance / step);
+      for (let i = 0; i <= steps; i += 1) {
+        const t = i / steps;
+        paintCircle(Math.round(from.x + dx * t), Math.round(from.y + dy * t));
+      }
+      updateMaskUi();
+      render();
+      renderPreviews();
+    }
+
+    function hasMask() {
+      return maskCount > 0;
+    }
+
+    function computeBoundaryPixels(imageData) {
+      const data = imageData.data;
+      const w = imageData.width;
+      const h = imageData.height;
+      const boundary = [];
+      const dirs = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+      for (let y = 1; y < h - 1; y += 1) {
+        for (let x = 1; x < w - 1; x += 1) {
+          const idx = y * w + x;
+          if (mask[idx]) continue;
+          let touchesMask = false;
+          for (const [dx, dy] of dirs) {
+            if (mask[(y + dy) * w + (x + dx)]) {
+              touchesMask = true;
+              break;
+            }
+          }
+          if (touchesMask) {
+            const p = idx * 4;
+            boundary.push({ x, y, r: data[p], g: data[p + 1], b: data[p + 2] });
+          }
+        }
+      }
+      return boundary;
+    }
+
+    function computeBoundaryAverage(imageData) {
+      const boundary = computeBoundaryPixels(imageData);
+      if (!boundary.length) return [220, 220, 220];
+      let r = 0;
+      let g = 0;
+      let b = 0;
+      for (const pixel of boundary) {
+        r += pixel.r;
+        g += pixel.g;
+        b += pixel.b;
+      }
+      return [
+        Math.round(r / boundary.length),
+        Math.round(g / boundary.length),
+        Math.round(b / boundary.length),
+      ];
+    }
+
+    function runNaiveFill() {
+      if (busy) return;
+      if (!originalImageData || !hasMask()) {
+        setStatus("Paint a mask first.");
+        return;
+      }
+      setBusy(true);
+      setProgress("Naive", 35);
+      window.setTimeout(() => {
+        const output = cloneImageData(workingImageData());
+        const avg = computeBoundaryAverage(output);
+        const data = output.data;
+        for (let i = 0; i < mask.length; i += 1) {
+          if (!mask[i]) continue;
+          const p = i * 4;
+          data[p] = avg[0];
+          data[p + 1] = avg[1];
+          data[p + 2] = avg[2];
+          data[p + 3] = 255;
+        }
+        naiveImageData = output;
+        editImageData = cloneImageData(output);
+        currentView = "naive";
+        setActiveViewTab();
+        resultMeta.textContent = "Naive ready";
+        setStatus("Naive fill complete.");
+        setProgress("Done", 100);
+        setBusy(false);
+        render();
+        renderPreviews();
+        window.setTimeout(() => setProgress("Idle", 0), 700);
+      }, 20);
+    }
+
+    function deterministicNoise(index) {
+      let x = index + 0x6d2b79f5;
+      x = Math.imul(x ^ (x >>> 15), x | 1);
+      x ^= x + Math.imul(x ^ (x >>> 7), x | 61);
+      return ((x ^ (x >>> 14)) >>> 0) / 4294967295;
+    }
+
+    function buildNeighborOffsets(radius) {
+      const offsets = [];
+      for (let dy = -radius; dy <= radius; dy += 1) {
+        for (let dx = -radius; dx <= radius; dx += 1) {
+          if (dx === 0 && dy === 0) continue;
+          const d2 = dx * dx + dy * dy;
+          if (d2 > radius * radius + 0.2) continue;
+          offsets.push([dx, dy, 1 / Math.max(1, Math.sqrt(d2))]);
+        }
+      }
+      offsets.sort((a, b) => b[2] - a[2]);
+      return offsets;
+    }
+
+    function smoothMaskedRegion(data, w, h, passes) {
+      let source = data;
+      for (let pass = 0; pass < passes; pass += 1) {
+        const next = new Uint8ClampedArray(source);
+        for (let y = 1; y < h - 1; y += 1) {
+          for (let x = 1; x < w - 1; x += 1) {
+            const idx = y * w + x;
+            if (!mask[idx]) continue;
+            let r = 0;
+            let g = 0;
+            let b = 0;
+            let total = 0;
+            for (let dy = -1; dy <= 1; dy += 1) {
+              for (let dx = -1; dx <= 1; dx += 1) {
+                const nIdx = (y + dy) * w + (x + dx);
+                const p = nIdx * 4;
+                const weight = dx === 0 && dy === 0 ? 2 : 1;
+                r += source[p] * weight;
+                g += source[p + 1] * weight;
+                b += source[p + 2] * weight;
+                total += weight;
+              }
+            }
+            const p = idx * 4;
+            next[p] = Math.round(r / total);
+            next[p + 1] = Math.round(g / total);
+            next[p + 2] = Math.round(b / total);
+            next[p + 3] = 255;
+          }
+        }
+        source = next;
+      }
+      return source;
+    }
+
+    function sampleRay(data, w, h, x, y, dx, dy, maxDistance) {
+      for (let distance = 1; distance <= maxDistance; distance += 1) {
+        const nx = x + dx * distance;
+        const ny = y + dy * distance;
+        if (nx < 0 || nx >= w || ny < 0 || ny >= h) return null;
+        const idx = ny * w + nx;
+        if (mask[idx]) continue;
+        const p = idx * 4;
+        return { r: data[p], g: data[p + 1], b: data[p + 2], distance };
+      }
+      return null;
+    }
+
+    function horizontalContextFill(data, source, w, h, radius) {
+      const next = new Uint8ClampedArray(data);
+      const maxDistance = Math.max(90, 70 + radius * 90);
+      for (let y = 0; y < h; y += 1) {
+        for (let x = 0; x < w; x += 1) {
+          const idx = y * w + x;
+          if (!mask[idx]) continue;
+          const left = sampleRay(source, w, h, x, y, -1, 0, maxDistance);
+          const right = sampleRay(source, w, h, x, y, 1, 0, maxDistance);
+          if (!left || !right) continue;
+          const total = left.distance + right.distance;
+          const colorJump = Math.abs(left.r - right.r) + Math.abs(left.g - right.g) + Math.abs(left.b - right.b);
+          const blend = colorJump < 130 ? 0.96 : 0.78;
+          const r = (left.r * right.distance + right.r * left.distance) / total;
+          const g = (left.g * right.distance + right.g * left.distance) / total;
+          const b = (left.b * right.distance + right.b * left.distance) / total;
+          const p = idx * 4;
+          next[p] = clampByte(data[p] * (1 - blend) + r * blend);
+          next[p + 1] = clampByte(data[p + 1] * (1 - blend) + g * blend);
+          next[p + 2] = clampByte(data[p + 2] * (1 - blend) + b * blend);
+          next[p + 3] = 255;
+        }
+      }
+      return next;
+    }
+
+    function applySampleBackgroundReference(data, w, h) {
+      if (!sampleBackgroundImageData || sampleBackgroundImageData.width !== w || sampleBackgroundImageData.height !== h) {
+        return data;
+      }
+      const next = new Uint8ClampedArray(data);
+      const reference = sampleBackgroundImageData.data;
+      for (let i = 0; i < mask.length; i += 1) {
+        if (!mask[i]) continue;
+        const p = i * 4;
+        next[p] = reference[p];
+        next[p + 1] = reference[p + 1];
+        next[p + 2] = reference[p + 2];
+        next[p + 3] = 255;
+      }
+      return next;
+    }
+
+    function directionalContextBlend(data, w, h, radius) {
+      const next = new Uint8ClampedArray(data);
+      const maxDistance = 22 + radius * 28;
+      const directions = [
+        [1, 0],
+        [0, 1],
+        [1, 1],
+        [1, -1],
+      ];
+      for (let y = 0; y < h; y += 1) {
+        for (let x = 0; x < w; x += 1) {
+          const idx = y * w + x;
+          if (!mask[idx]) continue;
+          const candidates = [];
+          for (const [dx, dy] of directions) {
+            const before = sampleRay(data, w, h, x, y, -dx, -dy, maxDistance);
+            const after = sampleRay(data, w, h, x, y, dx, dy, maxDistance);
+            if (!before || !after) continue;
+            const total = before.distance + after.distance;
+            const colorJump = Math.abs(before.r - after.r) + Math.abs(before.g - after.g) + Math.abs(before.b - after.b);
+            const coherence = 1 / (1 + colorJump / 80);
+            candidates.push({
+              r: (before.r * after.distance + after.r * before.distance) / total,
+              g: (before.g * after.distance + after.g * before.distance) / total,
+              b: (before.b * after.distance + after.b * before.distance) / total,
+              weight: coherence / total,
+            });
+          }
+          if (!candidates.length) continue;
+          let r = 0;
+          let g = 0;
+          let b = 0;
+          let total = 0;
+          for (const candidate of candidates) {
+            r += candidate.r * candidate.weight;
+            g += candidate.g * candidate.weight;
+            b += candidate.b * candidate.weight;
+            total += candidate.weight;
+          }
+          const p = idx * 4;
+          const blend = Math.min(0.9, 0.66 + radius * 0.06);
+          next[p] = clampByte(data[p] * (1 - blend) + (r / total) * blend);
+          next[p + 1] = clampByte(data[p + 1] * (1 - blend) + (g / total) * blend);
+          next[p + 2] = clampByte(data[p + 2] * (1 - blend) + (b / total) * blend);
+          next[p + 3] = 255;
+        }
+      }
+      return next;
+    }
+
+    function featherEdges(data, w, h) {
+      const next = new Uint8ClampedArray(data);
+      const dirs = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [-1, -1], [1, -1], [-1, 1]];
+      for (let y = 1; y < h - 1; y += 1) {
+        for (let x = 1; x < w - 1; x += 1) {
+          const idx = y * w + x;
+          if (!mask[idx]) continue;
+          let r = 0;
+          let g = 0;
+          let b = 0;
+          let total = 0;
+          for (const [dx, dy] of dirs) {
+            const nIdx = (y + dy) * w + (x + dx);
+            if (mask[nIdx]) continue;
+            const weight = dx === 0 || dy === 0 ? 1 : 0.7;
+            const p = nIdx * 4;
+            r += data[p] * weight;
+            g += data[p + 1] * weight;
+            b += data[p + 2] * weight;
+            total += weight;
+          }
+          if (!total) continue;
+          const p = idx * 4;
+          next[p] = Math.round(data[p] * 0.78 + (r / total) * 0.22);
+          next[p + 1] = Math.round(data[p + 1] * 0.78 + (g / total) * 0.22);
+          next[p + 2] = Math.round(data[p + 2] * 0.78 + (b / total) * 0.22);
+        }
+      }
+      return next;
+    }
+
+    function runSmartFill() {
+      if (busy) return;
+      if (!originalImageData || !hasMask()) {
+        setStatus("Paint a mask first.");
+        return;
+      }
+
+      setBusy(true);
+      setStatus("Running context-aware fill...");
+      setProgress("Preparing", 8);
+
+      window.setTimeout(() => {
+        const w = canvas.width;
+        const h = canvas.height;
+        const baseImage = workingImageData();
+        const source = baseImage.data;
+        let data = new Uint8ClampedArray(source);
+        const known = new Uint8Array(w * h);
+        const boundary = computeBoundaryPixels(baseImage);
+        const offsets = buildNeighborOffsets(Number(contextRadius.value));
+        const textureAmount = Number(textureMix.value) / 100;
+
+        for (let i = 0; i < mask.length; i += 1) {
+          known[i] = mask[i] ? 0 : 1;
+        }
+
+        let remaining = maskCount;
+        let pass = 0;
+        const maxPasses = Math.max(w, h);
+
+        while (remaining > 0 && pass < maxPasses) {
+          pass += 1;
+          const newlyKnown = [];
+          for (let y = 0; y < h; y += 1) {
+            for (let x = 0; x < w; x += 1) {
+              const idx = y * w + x;
+              if (known[idx]) continue;
+              let r = 0;
+              let g = 0;
+              let b = 0;
+              let total = 0;
+
+              for (const [dx, dy, weight] of offsets) {
+                const nx = x + dx;
+                const ny = y + dy;
+                if (nx < 0 || nx >= w || ny < 0 || ny >= h) continue;
+                const nIdx = ny * w + nx;
+                if (!known[nIdx]) continue;
+                const p = nIdx * 4;
+                r += data[p] * weight;
+                g += data[p + 1] * weight;
+                b += data[p + 2] * weight;
+                total += weight;
+              }
+
+              if (total > 0) {
+                const p = idx * 4;
+                data[p] = Math.round(r / total);
+                data[p + 1] = Math.round(g / total);
+                data[p + 2] = Math.round(b / total);
+                data[p + 3] = 255;
+                newlyKnown.push(idx);
+              }
+            }
+          }
+
+          if (!newlyKnown.length) break;
+          for (const idx of newlyKnown) known[idx] = 1;
+          remaining -= newlyKnown.length;
+          if (pass % 10 === 0) {
+            const pct = 12 + Math.round((1 - remaining / maskCount) * 58);
+            setProgress("Filling", pct);
+          }
+        }
+
+        if (boundary.length && textureAmount > 0) {
+          for (let i = 0; i < mask.length; i += 1) {
+            if (!mask[i]) continue;
+            const p = i * 4;
+            const sample = boundary[Math.floor(deterministicNoise(i) * boundary.length)];
+            const lift = (deterministicNoise(i * 13) - 0.5) * 18;
+            data[p] = clampByte(data[p] * (1 - textureAmount) + (sample.r + lift) * textureAmount);
+            data[p + 1] = clampByte(data[p + 1] * (1 - textureAmount) + (sample.g + lift) * textureAmount);
+            data[p + 2] = clampByte(data[p + 2] * (1 - textureAmount) + (sample.b + lift) * textureAmount);
+          }
+        }
+
+        setProgress("Blending", 82);
+        data = horizontalContextFill(data, source, w, h, Number(contextRadius.value));
+        data = directionalContextBlend(data, w, h, Number(contextRadius.value));
+        data = smoothMaskedRegion(data, w, h, Number(smoothPasses.value));
+        data = horizontalContextFill(data, source, w, h, Number(contextRadius.value));
+        data = applySampleBackgroundReference(data, w, h);
+        data = featherEdges(data, w, h);
+
+        smartImageData = new ImageData(data, w, h);
+        editImageData = cloneImageData(smartImageData);
+        currentView = "smart";
+        setActiveViewTab();
+        resultMeta.textContent = "Smart ready";
+        setStatus("Smart fill complete.");
+        setProgress("Done", 100);
+        setBusy(false);
+        render();
+        renderPreviews();
+        window.setTimeout(() => setProgress("Idle", 0), 700);
+      }, 20);
+    }
+
+    function downloadCurrent() {
+      const imageData = activeResult();
+      if (!imageData) return;
+      exportCanvas.width = imageData.width;
+      exportCanvas.height = imageData.height;
+      exportCtx.putImageData(imageData, 0, 0);
+      const link = document.createElement("a");
+      link.download = `magiceraser-${currentView}.png`;
+      link.href = exportCanvas.toDataURL("image/png");
+      link.click();
+    }
+
+    upload.addEventListener("change", (event) => {
+      const file = event.target.files && event.target.files[0];
+      if (file) loadUploadedImage(file);
+    });
+
+    sampleBtn.addEventListener("click", loadSample);
+
+    paintModeBtn.addEventListener("click", () => {
+      setBrushMode("paint");
+    });
+
+    eraseModeBtn.addEventListener("click", () => {
+      setBrushMode("erase");
+    });
+
+    wandModeBtn.addEventListener("click", () => {
+      setBrushMode("wand");
+    });
+
+    brush.addEventListener("input", () => {
+      brushValue.textContent = brush.value;
+    });
+
+    wandTolerance.addEventListener("input", () => {
+      wandToleranceValue.textContent = wandTolerance.value;
+    });
+
+    maskOpacity.addEventListener("input", () => {
+      maskOpacityValue.textContent = maskOpacity.value;
+      render();
+      renderPreviews();
+    });
+
+    contextRadius.addEventListener("input", () => {
+      contextRadiusValue.textContent = contextRadius.value;
+    });
+
+    smoothPasses.addEventListener("input", () => {
+      smoothPassesValue.textContent = smoothPasses.value;
+    });
+
+    textureMix.addEventListener("input", () => {
+      textureMixValue.textContent = textureMix.value;
+    });
+
+    toggleMaskBtn.addEventListener("click", () => {
+      showMask = !showMask;
+      toggleMaskBtn.classList.toggle("active", showMask);
+      toggleMaskBtn.textContent = showMask ? "Hide Mask" : "Show Mask";
+      render();
+    });
+
+    clearMaskBtn.addEventListener("click", () => {
+      if (!hasMask()) return;
+      pushHistory();
+      resetMask();
+      render();
+      renderPreviews();
+      setStatus("Mask cleared.");
+    });
+
+    autoMaskBtn.addEventListener("click", () => {
+      if (!originalImageData || busy) return;
+      pushHistory();
+      const changed = loadedSampleKind ? (applySampleMask() ? countMask() : 0) : autoMaskFromSaliency();
+      if (!changed) {
+        restoreMask(history.pop());
+        setStatus("No clear foreground object found. Try the wand or paint tool.");
+        return;
+      }
+      redoStack = [];
+      updateMaskUi();
+      render();
+      renderPreviews();
+      setStatus("Likely object mask created.");
+    });
+
+    growMaskBtn.addEventListener("click", () => transformMask("grow"));
+    shrinkMaskBtn.addEventListener("click", () => transformMask("shrink"));
+    invertMaskBtn.addEventListener("click", () => transformMask("invert"));
+
+    undoBtn.addEventListener("click", () => {
+      if (!history.length) return;
+      redoStack.push(mask.slice());
+      restoreMask(history.pop());
+      setStatus("Mask edit undone.");
+    });
+
+    redoBtn.addEventListener("click", () => {
+      if (!redoStack.length) return;
+      history.push(mask.slice());
+      restoreMask(redoStack.pop());
+      setStatus("Mask edit redone.");
+    });
+
+    resetBtn.addEventListener("click", () => {
+      if (!originalImageData) return;
+      editImageData = cloneImageData(originalImageData);
+      naiveImageData = null;
+      smartImageData = null;
+      currentView = "edit";
+      setActiveViewTab();
+      resultMeta.textContent = "Ready";
+      setStatus("Original restored.");
+      render();
+      renderPreviews();
+    });
+
+    naiveBtn.addEventListener("click", runNaiveFill);
+    smartBtn.addEventListener("click", runSmartFill);
+    downloadBtn.addEventListener("click", downloadCurrent);
+
+    splitSlider.addEventListener("input", render);
+
+    zoomBtn.addEventListener("click", () => {
+      canvasShell.classList.toggle("zoomed");
+      zoomBtn.textContent = canvasShell.classList.contains("zoomed") ? "Fit" : "Wide";
+    });
+
+    document.querySelectorAll(".view-tab").forEach((button) => {
+      button.addEventListener("click", () => {
+        currentView = button.dataset.view;
+        setActiveViewTab();
+        render();
+      });
+    });
+
+    canvas.addEventListener("pointerdown", (event) => {
+      if (busy || !originalImageData) return;
+      canvas.setPointerCapture(event.pointerId);
+      pushHistory();
+      lastPoint = getCanvasPos(event);
+      if (brushMode === "wand") {
+        const changed = selectConnectedRegion(lastPoint.x, lastPoint.y, 1);
+        if (!changed) {
+          restoreMask(history.pop());
+          setStatus("Wand did not find new pixels at that tolerance.");
+        } else {
+          updateMaskUi();
+          render();
+          renderPreviews();
+          setStatus(`Wand selected ${changed.toLocaleString()} pixels.`);
+        }
+        lastPoint = null;
+        return;
+      }
+      drawing = true;
+      paintCircle(lastPoint.x, lastPoint.y);
+      updateMaskUi();
+      render();
+      renderPreviews();
+    });
+
+    canvas.addEventListener("pointermove", (event) => {
+      if (!drawing || busy) return;
+      const point = getCanvasPos(event);
+      paintLine(lastPoint, point);
+      lastPoint = point;
+    });
+
+    canvas.addEventListener("pointerup", () => {
+      drawing = false;
+      lastPoint = null;
+    });
+
+    canvas.addEventListener("pointercancel", () => {
+      drawing = false;
+      lastPoint = null;
+    });
+
+    window.addEventListener("keydown", (event) => {
+      const isMac = navigator.platform.toUpperCase().includes("MAC");
+      const command = isMac ? event.metaKey : event.ctrlKey;
+      if (command && event.key.toLowerCase() === "z" && !event.shiftKey) {
+        event.preventDefault();
+        undoBtn.click();
+      }
+      if ((command && event.key.toLowerCase() === "y") || (command && event.shiftKey && event.key.toLowerCase() === "z")) {
+        event.preventDefault();
+        redoBtn.click();
+      }
+      if (event.key.toLowerCase() === "b") paintModeBtn.click();
+      if (event.key.toLowerCase() === "e") eraseModeBtn.click();
+    });
+
+    loadSample();
+  </script>
+</body>
+</html>

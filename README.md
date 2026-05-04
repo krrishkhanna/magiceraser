@@ -1,19 +1,36 @@
 # MagicEraser
 
-Implementation strategy: [DEMO_STRATEGY.md](/Users/kkk/magiceraser/DEMO_STRATEGY.md)
+A small browser-based object removal demo inspired by the MagicEraser paper.
 
-Working local website: [index.html](/Users/kkk/magiceraser/index.html)
+Live demo: https://krrishkhanna.github.io/magiceraser/
 
-Open `index.html` in a browser to use the object-removal studio. It runs fully in the browser and includes:
+The app lets a user load an image, mark the object they want to remove, and compare a simple fill against a context-aware fill. Everything runs in the browser, so there is no backend or model server to set up.
 
-- image upload and built-in sample scenes,
-- paint and erase mask tools,
-- undo and redo for mask edits,
-- adjustable brush, mask overlay, context radius, blending, and texture controls,
-- naive fill and context-aware smart fill,
-- original / naive / smart / split comparison views,
-- live previews and PNG export.
+## Features
 
-What it proves:
+- upload your own image or use one of the built-in sample scenes
+- paint, erase, grow, shrink, invert, and undo/redo masks
+- auto-mask for the sample scenes and a basic saliency fallback for uploads
+- compare original, naive fill, smart fill, and split view
+- tune context radius, blending, texture, and mask opacity
+- download the final result as a PNG
 
-- even without a full diffusion model, using surrounding scene context gives better erasure than a flat baseline.
+## Running Locally
+
+Open `index.html` directly in a browser, or serve the folder locally:
+
+```bash
+python3 -m http.server 8000
+```
+
+Then visit:
+
+```text
+http://127.0.0.1:8000/
+```
+
+## Notes
+
+This is a lightweight demo, not a full reproduction of the research model. The current version uses canvas-based masking and context-based filling so the complete workflow can be shown without GPU dependencies. The built-in samples are designed to make the comparison easy to explain during a presentation.
+
+More detailed implementation notes are in [DEMO_STRATEGY.md](DEMO_STRATEGY.md).
